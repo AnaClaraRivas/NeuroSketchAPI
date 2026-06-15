@@ -6,19 +6,19 @@ import io
 
 app = FastAPI()
 
-# CORS (Flutter / Web)
+# Configuração robusta do CORS para aceitar requisições do Flutter Web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # Permite qualquer origem (origem do localhost do Flutter)
+    allow_credentials=True,
+    allow_methods=["*"],  # Garante que POST, GET e OPTIONS funcionem
+    allow_headers=["*"],  # Aceita qualquer cabeçalho enviado pelo Flutter
 )
 
-# yolo teste
+# Carrega o modelo YOLO
 model = YOLO("yolov8n.pt")
 
-# nomes das classes 
+# Nomes das classes 
 CLASSES = model.names
 
 
@@ -31,31 +31,33 @@ def home():
 
 @app.post("/analisar")
 async def analisar(file: UploadFile = File(...)):
+    try:
+        # Ler imagem enviada pelo Flutter
+        conteudo = await file.read()
+        imagem = Image.open(io.BytesIO(conteudo)).convert("RGB")
 
-    # ler imagem enviada pelo Flutter
-    conteudo = await file.read()
-    imagem = Image.open(io.BytesIO(conteudo)).convert("RGB")
+        # Roda o modelo YOLO na imagem
+        resultados = model(imagem)
 
-    # roda yolo
-    resultados = model(imagem)
+        deteccoes = []
 
-    deteccoes = []
+        # Extrair resultados das detecções
+        for resultado in resultados:
+            for box in resultado.boxes:
+                cls = int(box.cls[0])
+                conf = float(box.conf[0])
 
-    # extrair resultados
-    for resultado in resultados:
-        for box in resultado.boxes:
+                deteccoes.append({
+                    "classe": cls,
+                    "nome": CLASSES.get(cls, "desconhecido"),
+                    "confianca": round(conf, 4)  # Arredonda para 4 casas decimais para limpar o JSON
+                })
 
-            cls = int(box.cls[0])
-            conf = float(box.conf[0])
-
-            deteccoes.append({
-                "classe": cls,
-                "nome": CLASSES.get(cls, "desconhecido"),
-                "confianca": conf
-            })
-
-    # resposta final limpa
-    return {
-        "quantidade_deteccoes": len(deteccoes),
-        "deteccoes": deteccoes
-    }
+        # Resposta final limpa
+        return {
+            "quantidade_deteccoes": len(deteccoes),
+            "deteccoes": deteccoes
+        }
+        
+    except Exception as e:
+        return {"error": f"Erro ao processar a imagem: {str(e)}"}, 500
