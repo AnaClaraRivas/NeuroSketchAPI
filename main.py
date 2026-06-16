@@ -7,10 +7,11 @@ import io
 app = FastAPI()
 
 # Configuração robusta do CORS para aceitar requisições do Flutter Web
+# Configuração corrigida do CORS para aceitar requisições do Flutter Web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite qualquer origem (origem do localhost do Flutter)
-    allow_credentials=True,
+    allow_origins=["*"],  # Permite qualquer origem
+    allow_credentials=False,  # Essencial estar como False quando allow_origins é ["*"]
     allow_methods=["*"],  # Garante que POST, GET e OPTIONS funcionem
     allow_headers=["*"],  # Aceita qualquer cabeçalho enviado pelo Flutter
 )
