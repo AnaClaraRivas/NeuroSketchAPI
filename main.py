@@ -16,7 +16,13 @@ app.add_middleware(
 )
 
 # yolo teste
-model = YOLO("yolov8n.pt")
+model = YOLO("best.pt")
+
+# nomes das classes
+CLASSES = model.names
+
+print("CLASSES DO MODELO:")
+print(CLASSES)
 
 # nomes das classes 
 CLASSES = model.names
